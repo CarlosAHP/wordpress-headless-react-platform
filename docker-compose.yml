@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: catalog_postgres
+    environment:
+      POSTGRES_DB: wordpress_db
+      POSTGRES_USER: wp_user
+      POSTGRES_PASSWORD: wp_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - catalog_network
+
+  wordpress:
+    image: wordpress:latest
+    container_name: catalog_wordpress
+    depends_on:
+      - postgres
+    environment:
+      WORDPRESS_DB_HOST: postgres:5432
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_password
+      WORDPRESS_DB_NAME: wordpress_db
+      WORDPRESS_DEBUG: 1
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+      - ./wp-config.php:/var/www/html/wp-config.php
+    ports:
+      - "8080:80"
+    networks:
+      - catalog_network
+
+volumes:
+  postgres_data:
+
+networks:
+  catalog_network:
+    driver: bridge
+
