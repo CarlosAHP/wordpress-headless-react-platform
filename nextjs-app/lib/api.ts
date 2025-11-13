@@ -7,8 +7,13 @@ export interface Product {
   excerpt: string
   slug: string
   precio: string
+  precio_original?: string
+  precio_final?: string
+  descuento?: string
   disponibilidad: string
   sku: string
+  stock?: string
+  producto_destacado?: boolean
   featured_image: string
   categories: Array<{
     id: number
@@ -44,13 +49,34 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
   if (filters.per_page) params.append('per_page', filters.per_page.toString())
 
   const url = `${API_URL}/catalog/v1/products?${params.toString()}`
-  const res = await fetch(url, { next: { revalidate: 60 } })
   
-  if (!res.ok) {
-    throw new Error('Failed to fetch products')
-  }
+  try {
+    const res = await fetch(url, { 
+      next: { revalidate: 60 },
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error('WordPress no está configurado o el plugin no está activo')
+      }
+      throw new Error(`Failed to fetch products: ${res.status}`)
+    }
 
-  return res.json()
+    const contentType = res.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('WordPress devolvió una respuesta no válida. Verifica la configuración.')
+    }
+
+    return res.json()
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('No se pudo conectar con WordPress. Verifica que esté corriendo en http://localhost:8080')
+    }
+    throw error
+  }
 }
 
 export async function getProduct(id: number): Promise<Product> {

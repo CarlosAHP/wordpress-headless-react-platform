@@ -9,6 +9,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Cargar funcionalidades avanzadas
+require_once plugin_dir_path(__FILE__) . 'advanced-features.php';
+
 class Catalog_API {
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_routes'));
@@ -71,6 +74,31 @@ class Catalog_API {
             );
         }
 
+        // Filtro por productos destacados
+        if (isset($params['destacados']) && $params['destacados'] === 'true') {
+            if (!isset($args['meta_query'])) {
+                $args['meta_query'] = array();
+            }
+            $args['meta_query'][] = array(
+                'key' => 'producto_destacado',
+                'value' => '1',
+                'compare' => '='
+            );
+        }
+
+        // Filtro por productos con descuento
+        if (isset($params['descuento']) && $params['descuento'] === 'true') {
+            if (!isset($args['meta_query'])) {
+                $args['meta_query'] = array();
+            }
+            $args['meta_query'][] = array(
+                'key' => 'descuento',
+                'value' => '0',
+                'compare' => '>',
+                'type' => 'NUMERIC'
+            );
+        }
+
         $query = new WP_Query($args);
         $products = array();
 
@@ -86,8 +114,13 @@ class Catalog_API {
                     'excerpt' => get_the_excerpt(),
                     'slug' => get_post_field('post_name', $product_id),
                     'precio' => get_post_meta($product_id, 'precio', true),
+                    'precio_original' => get_post_meta($product_id, 'precio', true),
+                    'descuento' => get_post_meta($product_id, 'descuento', true),
+                    'precio_final' => $this->calculate_final_price($product_id),
                     'disponibilidad' => get_post_meta($product_id, 'disponibilidad', true),
                     'sku' => get_post_meta($product_id, 'sku', true),
+                    'stock' => get_post_meta($product_id, 'stock', true),
+                    'producto_destacado' => get_post_meta($product_id, 'producto_destacado', true) === '1',
                     'featured_image' => get_the_post_thumbnail_url($product_id, 'full'),
                     'categories' => wp_get_post_terms($product_id, 'categoria_producto', array('fields' => 'all')),
                     'date' => get_the_date('c', $product_id)
@@ -135,8 +168,13 @@ class Catalog_API {
             'excerpt' => get_the_excerpt($product_id),
             'slug' => $product->post_name,
             'precio' => get_post_meta($product_id, 'precio', true),
+            'precio_original' => get_post_meta($product_id, 'precio', true),
+            'descuento' => get_post_meta($product_id, 'descuento', true),
+            'precio_final' => $this->calculate_final_price($product_id),
             'disponibilidad' => get_post_meta($product_id, 'disponibilidad', true),
             'sku' => get_post_meta($product_id, 'sku', true),
+            'stock' => get_post_meta($product_id, 'stock', true),
+            'producto_destacado' => get_post_meta($product_id, 'producto_destacado', true) === '1',
             'featured_image' => get_the_post_thumbnail_url($product_id, 'full'),
             'categories' => wp_get_post_terms($product_id, 'categoria_producto', array('fields' => 'all')),
             'date' => get_the_date('c', $product_id)
@@ -219,6 +257,17 @@ class Catalog_API {
         }
 
         return new WP_REST_Response(array('message' => 'Producto eliminado'), 200);
+    }
+
+    private function calculate_final_price($product_id) {
+        $precio = floatval(get_post_meta($product_id, 'precio', true));
+        $descuento = floatval(get_post_meta($product_id, 'descuento', true));
+        
+        if ($descuento > 0) {
+            return number_format($precio * (1 - ($descuento / 100)), 2, '.', '');
+        }
+        
+        return number_format($precio, 2, '.', '');
     }
 }
 

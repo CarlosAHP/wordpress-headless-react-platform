@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { CartProvider } from '@/contexts/CartContext'
+import Navigation from '@/components/Navigation'
 
 export const metadata: Metadata = {
   title: 'Catálogo Inteligente',
@@ -13,7 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <CartProvider>
+          <Navigation />
+          {children}
+        </CartProvider>
+      </body>
     </html>
   )
 }

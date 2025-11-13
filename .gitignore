@@ -27,3 +27,32 @@ Thumbs.db
 # Docker
 .env
 
+# Credenciales y scripts temporales
+CREDENCIALES.md
+activate-plugin.php
+create-sample-products.php
+mark-featured-products.php
+wp-config.php
+
+# WordPress core (no subir)
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/upgrade-temp-backup/
+wp-content/languages/
+wp-content/debug.log
+wp-content/cache/
+wp-content/backup-db/
+
+# Temas por defecto de WordPress (no necesarios)
+wp-content/themes/twentytwentythree/
+wp-content/themes/twentytwentyfour/
+wp-content/themes/twentytwentyfive/
+wp-content/plugins/hello.php
+wp-content/plugins/akismet/
+
+# Node modules
+nextjs-app/node_modules/
+nextjs-app/.next/
+nextjs-app/package-lock.json
+nextjs-app/next-env.d.ts
+
