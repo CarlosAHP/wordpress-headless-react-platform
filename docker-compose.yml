@@ -14,14 +14,20 @@ services:
       - "5432:5432"
     networks:
       - catalog_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wp_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   wordpress:
     image: wordpress:latest
     container_name: catalog_wordpress
     depends_on:
-      - postgres
+      db:
+        condition: service_healthy
     environment:
-      WORDPRESS_DB_HOST: postgres:5432
+      WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wp_user
       WORDPRESS_DB_PASSWORD: wp_password
       WORDPRESS_DB_NAME: wordpress_db
@@ -34,8 +40,29 @@ services:
     networks:
       - catalog_network
 
+  db:
+    image: mysql:8.0
+    container_name: catalog_mysql
+    environment:
+      MYSQL_DATABASE: wordpress_db
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - catalog_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+  mysql_data:
 
 networks:
   catalog_network:

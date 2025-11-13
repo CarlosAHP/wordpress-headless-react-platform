@@ -26,6 +26,28 @@ class Catalog_API {
             'callback' => array($this, 'get_product'),
             'permission_callback' => '__return_true'
         ));
+
+        register_rest_route('catalog/v1', '/product', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'create_product'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+
+        register_rest_route('catalog/v1', '/product/(?P<id>\d+)', array(
+            'methods' => array('PUT', 'PATCH'),
+            'callback' => array($this, 'update_product'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+
+        register_rest_route('catalog/v1', '/product/(?P<id>\d+)', array(
+            'methods' => 'DELETE',
+            'callback' => array($this, 'delete_product'),
+            'permission_callback' => array($this, 'check_permission')
+        ));
+    }
+
+    public function check_permission() {
+        return current_user_can('edit_posts');
     }
 
     public function get_products($request) {
@@ -121,6 +143,82 @@ class Catalog_API {
         );
 
         return new WP_REST_Response($response, 200);
+    }
+
+    public function create_product($request) {
+        $data = $request->get_json_params();
+        
+        $post_data = array(
+            'post_title' => sanitize_text_field($data['title']),
+            'post_content' => wp_kses_post($data['content']),
+            'post_excerpt' => sanitize_textarea_field($data['excerpt']),
+            'post_type' => 'producto',
+            'post_status' => 'publish'
+        );
+
+        $post_id = wp_insert_post($post_data);
+
+        if (is_wp_error($post_id)) {
+            return new WP_Error('create_failed', 'Error al crear producto', array('status' => 500));
+        }
+
+        if (isset($data['precio'])) {
+            update_post_meta($post_id, 'precio', sanitize_text_field($data['precio']));
+        }
+        if (isset($data['disponibilidad'])) {
+            update_post_meta($post_id, 'disponibilidad', sanitize_text_field($data['disponibilidad']));
+        }
+        if (isset($data['sku'])) {
+            update_post_meta($post_id, 'sku', sanitize_text_field($data['sku']));
+        }
+
+        return new WP_REST_Response(array('id' => $post_id, 'message' => 'Producto creado'), 201);
+    }
+
+    public function update_product($request) {
+        $product_id = intval($request['id']);
+        $data = $request->get_json_params();
+
+        $post_data = array('ID' => $product_id);
+        
+        if (isset($data['title'])) {
+            $post_data['post_title'] = sanitize_text_field($data['title']);
+        }
+        if (isset($data['content'])) {
+            $post_data['post_content'] = wp_kses_post($data['content']);
+        }
+        if (isset($data['excerpt'])) {
+            $post_data['post_excerpt'] = sanitize_textarea_field($data['excerpt']);
+        }
+
+        $result = wp_update_post($post_data);
+
+        if (is_wp_error($result)) {
+            return new WP_Error('update_failed', 'Error al actualizar producto', array('status' => 500));
+        }
+
+        if (isset($data['precio'])) {
+            update_post_meta($product_id, 'precio', sanitize_text_field($data['precio']));
+        }
+        if (isset($data['disponibilidad'])) {
+            update_post_meta($product_id, 'disponibilidad', sanitize_text_field($data['disponibilidad']));
+        }
+        if (isset($data['sku'])) {
+            update_post_meta($product_id, 'sku', sanitize_text_field($data['sku']));
+        }
+
+        return new WP_REST_Response(array('id' => $product_id, 'message' => 'Producto actualizado'), 200);
+    }
+
+    public function delete_product($request) {
+        $product_id = intval($request['id']);
+        $result = wp_delete_post($product_id, true);
+
+        if (!$result) {
+            return new WP_Error('delete_failed', 'Error al eliminar producto', array('status' => 500));
+        }
+
+        return new WP_REST_Response(array('message' => 'Producto eliminado'), 200);
     }
 }
 

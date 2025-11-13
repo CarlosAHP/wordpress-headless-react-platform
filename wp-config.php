@@ -2,7 +2,7 @@
 define('DB_NAME', 'wordpress_db');
 define('DB_USER', 'wp_user');
 define('DB_PASSWORD', 'wp_password');
-define('DB_HOST', 'postgres:5432');
+define('DB_HOST', 'db:3306');
 define('DB_CHARSET', 'utf8mb4');
 define('DB_COLLATE', '');
 
